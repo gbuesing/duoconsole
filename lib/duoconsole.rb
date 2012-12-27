@@ -18,9 +18,13 @@ class Duoconsole
   end
 
   def preload_gems
+    require 'rails/all'
+
     if defined?(Bundler)
       Bundler.require(:default, :assets)
     end
+
+    require 'commands'
   end
 
   def create_socket_pair
@@ -36,13 +40,21 @@ class Duoconsole
       end
 
       load_application
+      monkeypatch_test_environment
 
-      trap(:INT) { exit(1) }
+      trap(:INT) {
+        # Ignore. This process needs to stay alive until the parent process exits
+      }
 
       CommandServer.new(child_socket).start
     end
 
-    at_exit { Process.kill(:INT, child_pid) }
+    # cleanup before exiting
+    at_exit {
+      Process.kill(:QUIT, child_pid)
+      parent_socket.close
+      child_socket.close
+    }
   end
 
   def load_application
@@ -56,8 +68,27 @@ class Duoconsole
 
   def start_console
     require 'rails/commands/console'
+    require 'rails/console/app'
     Rails::ConsoleMethods.send :include, ConsoleDelegation
     Rails::Console.start(Rails.application)
+  end
+
+  def monkeypatch_test_environment
+    Rails::Commands::TestEnvironment.module_eval do
+      # Overriding this method to add the following behavior:
+      #   1. fix issue with Postgres adapter and forking behavior
+      #   2. trap INT signal and exit
+      def fork
+        ActiveRecord::Base.clear_active_connections!
+        Rails::Commands::Environment.fork do
+          setup_for_test
+          trap(:INT) { exit(1) }
+
+          yield
+          ActiveRecord::Base.clear_active_connections!
+        end
+      end
+    end
   end
 
 
