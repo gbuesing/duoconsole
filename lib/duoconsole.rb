@@ -1,0 +1,131 @@
+require 'socket'
+
+class Duoconsole
+
+  def self.start
+    new.start
+  end
+
+  attr_accessor :child_socket, :parent_socket
+
+  def start
+    preload_gems
+    create_socket_pair
+    fork_child
+    load_application
+    initialize_command_client
+    start_console
+  end
+
+  def preload_gems
+    if defined?(Bundler)
+      Bundler.require(:default, :assets)
+    end
+  end
+
+  def create_socket_pair
+    self.child_socket, self.parent_socket = Socket.pair(:UNIX, :DGRAM, 0)
+  end
+
+  def fork_child
+    child_pid = fork do
+      ENV['RAILS_ENV'] = 'test'
+
+      if defined?(Rails)
+        Rails.env = 'test'
+      end
+
+      load_application
+
+      trap(:INT) { exit(1) }
+
+      CommandServer.new(child_socket).start
+    end
+
+    at_exit { Process.kill(:INT, child_pid) }
+  end
+
+  def load_application
+    require APP_PATH
+    Rails.application.require_environment!
+  end
+
+  def initialize_command_client
+    ConsoleDelegation.command_client = CommandClient.new(parent_socket)
+  end
+
+  def start_console
+    require 'rails/commands/console'
+    Rails::ConsoleMethods.send :include, ConsoleDelegation
+    Rails::Console.start(Rails.application)
+  end
+
+
+  class CommandClient
+    attr_reader :socket
+
+    def initialize socket
+      @socket = socket
+    end
+
+    def send msg
+      socket.write(msg)
+      socket.recv(1000)
+    end
+
+    def method_missing(m, *args, &block)
+      send "#{m} #{args.join(' ')}"
+    end
+  end
+
+
+  class CommandServer
+    attr_reader :socket
+
+    def initialize socket
+      @socket = socket
+    end
+
+    def start
+      loop do
+        msg = socket.recv(1000)
+        command, args = get_command_and_args msg
+
+        retval = if commander.respond_to?(command)
+          commander.send(command, args)
+        else
+          'Unrecognized command'
+        end
+
+        socket.write(retval)
+      end
+    end
+
+    def get_command_and_args msg
+      parts = msg.split(' ')
+      command = parts.shift
+      args = parts.join(' ')
+      args = nil unless args.match(/\S/)
+      [command, args]
+    end
+
+    def commander
+      @commander ||= Rails::Commands::Commander.new
+    end
+  end
+
+
+  module ConsoleDelegation
+    def self.command_client= client
+      @@command_client = client
+    end
+
+    def testenv
+      @@command_client
+    end
+
+    def test *args
+      testenv.test *args
+    end
+  end
+end
