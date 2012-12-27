@@ -1,9 +1,9 @@
 Duoconsole
 ==========
 
-Rails development console with test environment as a child process.
+Launch Rails development console with test environment as a child process.
 
-Requires [Rails commands gem](https://github.com/rails/commands).
+This allows you to run the `test` command from the [Rails commands gem](https://github.com/rails/commands) in your development console.
 
 
 Installation
@@ -37,3 +37,11 @@ You can also run other commands in the test environment using the `testenv` prox
     > testenv.rake 'db:schema:load'
 
 See [Rails commands README](https://github.com/rails/commands/blob/master/README.md) for available commands.
+
+
+Platform Compatibility
+----------------------
+This was tested on OS X using a Rails 3.2 app with a Postgres DB and Ruby 1.9.3.
+
+This won't work on Windows because of a lack of support for `fork`.
+
