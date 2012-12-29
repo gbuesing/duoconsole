@@ -101,7 +101,17 @@ class Duoconsole
 
     def send msg
       socket.write(msg)
+      recv
+    end
+
+    def recv
       socket.recv(1000)
+    rescue IRB::Abort => e
+      # IRB::Abort is triggered by ctrl-c
+      # When raise, we didn't get to recv message returned from this run
+      # Clear it out now so that it won't be in the buffer for next run
+      socket.recv(1000)
+      raise e
     end
 
     def method_missing(m, *args, &block)
