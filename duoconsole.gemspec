@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name    = 'duoconsole'
-  s.version = '0.1.0'
+  s.version = '0.1.1'
   s.author  = 'Geoff Buesing'
   s.email   = 'gbuesing@gmail.com'
   s.summary = 'Launch Rails development console with test environment as a child process'
