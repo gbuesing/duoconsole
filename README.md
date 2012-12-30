@@ -41,7 +41,7 @@ See [Rails commands README](https://github.com/rails/commands/blob/master/README
 
 Platform Compatibility
 ----------------------
-This was tested on OS X using a Rails 3.2 app with a Postgres DB and Ruby 1.9.3.
+This was tested on OS X using a Rails 3.2 app with a Postgres DB and MRI Ruby 1.9.3.
 
-This won't work on Windows because of a lack of support for `fork`.
+AFAIK this won't work on Windows or JRuby because of a lack of support for `fork`.
 
