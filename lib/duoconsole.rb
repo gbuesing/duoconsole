@@ -24,6 +24,7 @@ class Duoconsole
     end
 
     require 'commands'
+    monkeypatch_commands_gem
   end
 
   def create_socket_pair
@@ -35,7 +36,6 @@ class Duoconsole
       Rails.env = ENV['RAILS_ENV'] = ENV['RACK_ENV'] = 'test'
 
       load_application
-      monkeypatch_test_environment
 
       trap(:INT) {
         # Ignore. This process needs to stay alive until the parent process exits
@@ -81,7 +81,7 @@ class Duoconsole
     @command_client ||= CommandClient.new(parent_socket)
   end
 
-  def monkeypatch_test_environment
+  def monkeypatch_commands_gem
     Rails::Commands::TestEnvironment.module_eval do
       # Overriding this method to add the following behavior:
       #   1. fix issue with Postgres adapter and forking behavior
