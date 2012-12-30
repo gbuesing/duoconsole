@@ -33,11 +33,7 @@ class Duoconsole
 
   def fork_child
     child_pid = fork do
-      ENV['RAILS_ENV'] = 'test'
-
-      if defined?(Rails)
-        Rails.env = 'test'
-      end
+      Rails.env = ENV['RAILS_ENV'] = ENV['RACK_ENV'] = 'test'
 
       load_application
       monkeypatch_test_environment
