@@ -39,6 +39,15 @@ You can also run other commands in the test environment using the `testenv` prox
 See [Rails commands README](https://github.com/rails/commands/blob/master/README.md) for available commands.
 
 
+Caveats
+-------
+The test command won't detect changes outside of your app/ directory, e.g. changes to files in lib/, config/, Gemfile etc. won't be picked up.
+
+You'll need to exit and reload the terminal to pick up these changes.
+
+TODO: add some way to reload the test environment without exiting the terminal.
+
+
 Platform Compatibility
 ----------------------
 This was tested on OS X using a Rails 3.2 app with a Postgres DB and MRI Ruby 1.9.3.
