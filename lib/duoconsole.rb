@@ -13,7 +13,6 @@ class Duoconsole
     create_socket_pair
     fork_child
     load_application
-    initialize_command_client
     start_console
   end
 
@@ -70,15 +69,16 @@ class Duoconsole
     Rails.application.require_environment!
   end
 
-  def initialize_command_client
-    ConsoleDelegation.command_client = CommandClient.new(parent_socket)
-  end
-
   def start_console
     require 'rails/commands/console'
     require 'rails/console/app'
+    ConsoleDelegation.duoconsole = self
     Rails::ConsoleMethods.send :include, ConsoleDelegation
     Rails::Console.start(Rails.application)
+  end
+
+  def command_client
+    @command_client ||= CommandClient.new(parent_socket)
   end
 
   def monkeypatch_test_environment
@@ -165,12 +165,12 @@ class Duoconsole
 
 
   module ConsoleDelegation
-    def self.command_client= client
-      @@command_client = client
+    def self.duoconsole= dc
+      @@duoconsole = dc
     end
 
     def testenv
-      @@command_client
+      @@duoconsole.command_client
     end
 
     def test *args
