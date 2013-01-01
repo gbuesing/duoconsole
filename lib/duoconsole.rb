@@ -91,9 +91,14 @@ class Duoconsole
 
         Rails::Commands::Environment.fork do
           setup_for_test
-          trap(:INT) { exit(1) }
+
+          trap(:INT) {
+            $stderr.flush
+            exit
+          }
 
           yield
+
           clear_active_record_connections
         end
       end
