@@ -68,7 +68,7 @@ Caveats
 -------
 The test command won't detect changes outside of your app/ directory, e.g. changes to files in lib/, config/, Gemfile etc. won't be picked up.
 
-You'll need to exit and reload the terminal to pick up these changes.
+You'll need to exit and reload the console to pick up these changes.
 
 
 Platform Compatibility
