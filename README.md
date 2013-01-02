@@ -30,6 +30,8 @@ You can also run rake commands in the test environment via the `testenv` proxy:
     => "Completed"
     irb(main):004:0>
 
+See the [Rails commands README](https://github.com/rails/commands/blob/master/README.md) for available commands and options.
+
 
 Installation
 ------------
