@@ -36,7 +36,7 @@ Installation
 
 Add this line to your application's Gemfile:
 
-    gem 'duoconsole'
+    gem 'duoconsole', :group => :development
 
 And then execute:
 
