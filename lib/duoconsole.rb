@@ -119,7 +119,14 @@ class Duoconsole
       @socket = socket
     end
 
-    def send msg
+    def method_missing(m, *args, &block)
+      send m, args
+    end
+
+  private
+
+    def send command, args
+      msg = Marshal.dump([command, args])
       socket.write(msg)
       recv
     end
@@ -133,14 +140,11 @@ class Duoconsole
       socket.recv(1000)
       raise e
     end
-
-    def method_missing(m, *args, &block)
-      send "#{m} #{args.join(' ')}"
-    end
   end
 
 
   class CommandServer
+    RECOGNIZED_COMMANDS = [:test, :rake]
     attr_reader :socket
 
     def initialize socket
@@ -150,28 +154,38 @@ class Duoconsole
     def start
       loop do
         msg = socket.recv(1000)
-        command, args = get_command_and_args msg
+        command, args = Marshal.load(msg)
 
-        retval = if commander.respond_to?(command)
-          commander.send(command, args)
+        retval = if valid_command?(command)
+          run_command(command, args)
         else
-          'Unrecognized command'
+          "Unrecognized command. Valid commands are #{RECOGNIZED_COMMANDS.join(', ')}"
         end
 
         socket.write(retval)
       end
     end
 
-    def get_command_and_args msg
-      parts = msg.split(' ')
-      command = parts.shift
-      args = parts.join(' ')
-      args = nil unless args.match(/\S/)
-      [command, args]
+  private
+
+    def valid_command? command
+      RECOGNIZED_COMMANDS.include?(command.to_sym)
+    end
+
+    def run_command command, args
+      commander.send(command, *args)
+    rescue => e
+      dump_exception e
+      e.class.name
     end
 
     def commander
       @commander ||= Rails::Commands::Commander.new
+    end
+
+    def dump_exception e
+      puts "#{e.class}: #{e.message}"
+      puts e.backtrace.map {|line| "\t#{line}"}
     end
   end
 
