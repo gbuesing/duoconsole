@@ -44,6 +44,10 @@ class Duoconsole
       CommandServer.new(child_socket).start
     end
 
+    trap(:CHLD) {
+      command_client.child_exited = true
+    }
+
     # cleanup before exiting
     at_exit {
       Process.kill(:QUIT, child_pid)
@@ -114,6 +118,7 @@ class Duoconsole
 
   class CommandClient
     attr_reader :socket
+    attr_accessor :child_exited
 
     def initialize socket
       @socket = socket
@@ -126,9 +131,14 @@ class Duoconsole
   private
 
     def send command, args
-      msg = Marshal.dump([command, args])
-      socket.write(msg)
-      recv
+      if child_exited
+        puts "Test process has exited. You will need to exit and restart the console to run commands in the test environment."
+        nil
+      else
+        msg = Marshal.dump([command, args])
+        socket.write(msg)
+        recv
+      end
     end
 
     def recv
