@@ -87,9 +87,13 @@ class Duoconsole
       #   1. fix issue with Postgres adapter and forking behavior
       #   2. trap INT signal and exit
       def fork
-        clear_active_record_connections
+        defined?(ActiveRecord::Base) and
+          ActiveRecord::Base.connection.disconnect!
 
         Rails::Commands::Environment.fork do
+          defined?(ActiveRecord::Base) and
+            ActiveRecord::Base.establish_connection
+
           setup_for_test
 
           trap(:INT) {
@@ -98,14 +102,6 @@ class Duoconsole
           }
 
           yield
-
-          clear_active_record_connections
-        end
-      end
-
-      def clear_active_record_connections
-        if defined? ActiveRecord
-          ActiveRecord::Base.clear_active_connections!
         end
       end
     end
