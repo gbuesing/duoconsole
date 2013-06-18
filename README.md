@@ -73,7 +73,7 @@ You'll need to exit and reload the console to pick up these changes.
 
 Platform Compatibility
 ----------------------
-Duoconsole was developed using a Rails 3.2 app running on MRI Ruby 1.9.3 on OS X.
+Duoconsole has been tested on OS X on a Rails 4 app running on MRI Ruby 2.0.0 and a Rails 3.2 app running on MRI Ruby 1.9.3.
 
 AFAIK this won't work on Windows or JRuby because of a lack of support for `Kernel.fork`.
 
