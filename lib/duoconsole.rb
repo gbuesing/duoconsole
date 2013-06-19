@@ -22,8 +22,6 @@ class Duoconsole
     if defined?(Bundler)
       Bundler.require(:default, :assets)
     end
-
-    require 'commands'
   end
 
   def create_socket_pair
@@ -146,6 +144,7 @@ class Duoconsole
     def require_app
       Rails.env = ENV['RAILS_ENV'] = ENV['RACK_ENV'] = 'test'
       require APP_PATH
+      require 'commands'
       monkeypatch_commands_gem
       @app_required = true
     end
