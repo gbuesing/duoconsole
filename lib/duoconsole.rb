@@ -24,7 +24,6 @@ class Duoconsole
     end
 
     require 'commands'
-    monkeypatch_commands_gem
   end
 
   def create_socket_pair
@@ -33,10 +32,6 @@ class Duoconsole
 
   def fork_child
     child_pid = fork do
-      Rails.env = ENV['RAILS_ENV'] = ENV['RACK_ENV'] = 'test'
-
-      load_application
-
       trap(:INT) {
         # Ignore. This process needs to stay alive until the parent process exits
       }
@@ -54,18 +49,6 @@ class Duoconsole
 
   def load_application
     require APP_PATH
-
-    if Rails.env.test?
-      # Initializer copied from https://github.com/jonleighton/spring/blob/master/lib/spring/application.rb#L30
-      #
-      # The test environment has config.cache_classes = true set by default.
-      # However, we don't want this to prevent us from performing class reloading,
-      # so this gets around that.
-      Rails::Application.initializer :initialize_dependency_mechanism, group: :all do
-        ActiveSupport::Dependencies.mechanism = :load
-      end
-    end
-
     Rails.application.require_environment!
   end
 
@@ -79,32 +62,6 @@ class Duoconsole
 
   def command_client
     @command_client ||= CommandClient.new(parent_socket)
-  end
-
-  def monkeypatch_commands_gem
-    Rails::Commands::TestEnvironment.module_eval do
-      # Overriding this method to add the following behavior:
-      #   1. fix issue with Postgres adapter and forking behavior
-      #   2. trap INT signal and exit
-      def fork
-        defined?(ActiveRecord::Base) and
-          ActiveRecord::Base.connection.disconnect!
-
-        Rails::Commands::Environment.fork do
-          defined?(ActiveRecord::Base) and
-            ActiveRecord::Base.establish_connection
-
-          setup_for_test
-
-          trap(:INT) {
-            $stderr.flush
-            exit
-          }
-
-          yield
-        end
-      end
-    end
   end
 
 
@@ -135,6 +92,7 @@ class Duoconsole
       # Clear it out now so that it won't be in the buffer for next run
       socket.recv(1000)
       raise e
+      # e.class.name
     end
   end
 
@@ -153,6 +111,7 @@ class Duoconsole
         command, args = Marshal.load(msg)
 
         retval = if valid_command?(command)
+          require_app unless @app_required
           run_command(command, args)
         else
           "Unrecognized command. Valid commands are #{RECOGNIZED_COMMANDS.join(', ')}"
@@ -182,6 +141,36 @@ class Duoconsole
     def dump_exception e
       puts "#{e.class}: #{e.message}"
       puts e.backtrace.map {|line| "\t#{line}"}
+    end
+
+    def require_app
+      Rails.env = ENV['RAILS_ENV'] = ENV['RACK_ENV'] = 'test'
+      require APP_PATH
+      monkeypatch_commands_gem
+      @app_required = true
+    end
+
+    def monkeypatch_commands_gem
+      Rails::Commands::TestEnvironment.module_eval do
+        def fork
+          Rails::Commands::Environment.fork do
+            trap(:INT) {
+              $stderr.flush
+              exit
+            }
+
+            Rails.application.require_environment!
+
+            if defined?(ActiveRecord::Base)
+              ActiveRecord::Base.establish_connection
+            end
+
+            add_test_dir_to_load_path
+
+            yield
+          end
+        end
+      end
     end
   end
 

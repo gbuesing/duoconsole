@@ -55,13 +55,11 @@ From the root of your project, instead of running `rails console`, run:
 How it works
 ------------
 
-When you start Duoconsole, you'll create two processes: the main process, which is running the Rails console in the development environment, and a child process that has your app loaded in the test environment. The parent process sends commands to the child process via a Unix socket.
+When you start Duoconsole, you'll create two processes: the main process, which is running the Rails console in the development environment, and a child process that loads the app in the test environment. The parent process sends commands to the child process via a Unix socket.
 
 The child process is created after Rails and all gems in Gemfile are required (via `Bundler.require`), so that this work only needs to be performed once.
 
-The test process will fork another process for each test run, so that each run will exist in isolation, and can be easily aborted with ctrl-c. This runner process dies once tests are finished, or aborted.
-
-The [rebootable branch](https://github.com/gbuesing/duoconsole/tree/rebootable) forks an extra process after gems are required, so that the test environment can be reloaded when changes are made to the app outside of the app/ directory. I'm not sure yet if this additional complexity is necessary, or if it's just as easy to exit and reload the console.
+The child process will fork its own child process for each test run, so that each run will exist in isolation, and can be easily aborted with ctrl-c. This runner process dies once tests are finished, or aborted.
 
 
 Caveats
